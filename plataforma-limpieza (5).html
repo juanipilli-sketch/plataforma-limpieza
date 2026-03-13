@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CleanManager – Gestión de Limpieza</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2334;
+    --surface3: #252b3d;
+    --border: #2a3050;
+    --accent: #4f8ef7;
+    --accent2: #38d9a9;
+    --accent3: #f7b94f;
+    --danger: #f7614f;
+    --text: #e8ecf4;
+    --text2: #8b92a8;
+    --text3: #5a6178;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+  }
+  .logo { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 18px; }
+  .logo h1 { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .logo p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 1px; padding: 12px 10px 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--text2); font-size: 14px; font-weight: 500; transition: all 0.15s;
+    margin-bottom: 2px; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: white; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-badge { margin-left: auto; background: var(--danger); color: white;
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .user-card { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 34px; height: 34px; background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .user-info p { font-size: 13px; font-weight: 600; }
+  .user-info span { font-size: 11px; color: var(--text3); }
+
+  /* MAIN */
+  .main { margin-left: 240px; flex: 1; padding: 28px; min-height: 100vh; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* HEADER */
+  .page-header { margin-bottom: 24px; }
+  .page-header h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .page-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+
+  /* CARDS */
+  .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; }
+  .stat-card .label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+  .stat-card .sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .stat-card.green .value { color: var(--accent2); }
+  .stat-card.blue .value { color: var(--accent); }
+  .stat-card.orange .value { color: var(--accent3); }
+  .stat-card.red .value { color: var(--danger); }
+
+  /* TABLES */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: space-between; }
+  .table-header h3 { font-size: 15px; font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px;
+    background: var(--surface2); border-bottom: 1px solid var(--border); }
+  td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; }
+  .badge-pending { background: rgba(247,185,79,0.15); color: var(--accent3); }
+  .badge-done { background: rgba(56,217,169,0.15); color: var(--accent2); }
+  .badge-active { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .badge-inactive { background: rgba(90,97,120,0.15); color: var(--text3); }
+  .badge-paid { background: rgba(56,217,169,0.15); color: var(--accent2); }
+  .badge-partial { background: rgba(247,97,79,0.15); color: var(--danger); }
+  .badge-admin { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .badge-partial-role { background: rgba(247,185,79,0.15); color: var(--accent3); }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer;
+    border: none; transition: all 0.15s; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #3a7ef5; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface3); }
+  .btn-success { background: rgba(56,217,169,0.15); color: var(--accent2); border: 1px solid rgba(56,217,169,0.3); }
+  .btn-danger { background: rgba(247,97,79,0.12); color: var(--danger); border: 1px solid rgba(247,97,79,0.3); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ALERTS */
+  .alerts-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 20px; margin-bottom: 24px; }
+  .alerts-box h3 { font-size: 13px; font-weight: 600; color: var(--accent3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .alert-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2);
+    padding: 5px 0; }
+  .alert-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+
+  /* GRID 2 */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* AGENDA */
+  .agenda-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 20px; margin-bottom: 12px; display: flex; gap: 20px; align-items: flex-start; }
+  .agenda-time { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500;
+    color: var(--accent); min-width: 60px; padding-top: 2px; }
+  .agenda-info { flex: 1; }
+  .agenda-info h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .agenda-info .meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text2); }
+  .agenda-info .meta span { display: flex; align-items: center; gap: 4px; }
+  .agenda-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-input { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; outline: none; }
+  .filter-input:focus { border-color: var(--accent); }
+  select.filter-input option { background: var(--surface2); }
+
+  /* PISO CARD */
+  .piso-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .piso-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .piso-card .zona { font-size: 12px; color: var(--accent); font-weight: 500; margin-bottom: 12px; }
+  .piso-detail { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0;
+    border-bottom: 1px solid var(--border); color: var(--text2); }
+  .piso-detail:last-child { border-bottom: none; }
+  .piso-detail span:last-child { color: var(--text); font-weight: 500; }
+
+  /* FINANCIAL */
+  .finance-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .finance-total { padding: 16px 20px; background: var(--surface2); border-top: 2px solid var(--accent);
+    display: flex; justify-content: space-between; align-items: center; }
+  .finance-total .label { font-size: 14px; font-weight: 600; }
+  .finance-total .amount { font-size: 22px; font-weight: 700; color: var(--accent2); font-family: 'DM Mono', monospace; }
+
+  /* INPUT */
+  .input-field { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit;
+    outline: none; width: 90px; }
+  .input-field:focus { border-color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; width: 480px; max-width: 95vw; box-shadow: var(--shadow); }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .form-row { margin-bottom: 16px; }
+  .form-row label { display: block; font-size: 12px; color: var(--text2); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; outline: none; }
+  .form-row input:focus, .form-row select:focus { border-color: var(--accent); }
+  .form-row select option { background: var(--surface2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* WEEK VIEW */
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; }
+  .week-day { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px 8px; min-height: 120px; }
+  .week-day-header { font-size: 11px; font-weight: 600; color: var(--text3); text-align: center;
+    margin-bottom: 8px; text-transform: uppercase; }
+  .week-day-num { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+  .week-day.today { border-color: var(--accent); }
+  .week-day.today .week-day-num { color: var(--accent); }
+  .week-event { background: var(--accent); border-radius: 4px; padding: 3px 6px;
+    font-size: 10px; margin-bottom: 4px; cursor: pointer; }
+  .week-event.green { background: rgba(56,217,169,0.2); color: var(--accent2); border: 1px solid rgba(56,217,169,0.3); }
+
+  /* CHART BAR */
+  .bar-chart { display: flex; gap: 12px; align-items: flex-end; height: 120px; padding: 0 8px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 100%; border-radius: 6px 6px 0 0; transition: height 0.5s; }
+  .bar-label { font-size: 10px; color: var(--text3); }
+  .bar-val { font-size: 10px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+  /* MOBILE NOTE */
+  .mobile-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 28px;
+    width: 280px; margin: 0 auto; padding: 30px 20px; }
+  .mobile-header { text-align: center; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .mobile-service { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 12px; }
+  .mobile-service h4 { font-size: 14px; font-weight: 600; }
+  .mobile-service p { font-size: 12px; color: var(--text2); margin: 4px 0 10px; }
+
+  /* PROFIT HIGHLIGHT */
+  .profit-card { background: linear-gradient(135deg, rgba(56,217,169,0.12), rgba(79,142,247,0.12));
+    border: 1px solid rgba(56,217,169,0.3); border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center; }
+  .profit-card .label { font-size: 13px; color: var(--text2); font-weight: 500; margin-bottom: 6px; }
+  .profit-card .amount { font-size: 36px; font-weight: 700; color: var(--accent2); font-family: 'DM Mono', monospace; letter-spacing: -1px; }
+  .profit-card .month { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* TOGGLE */
+  .toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .toggle-btn { padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
+    color: var(--text2); border: none; background: transparent; font-family: inherit; transition: all 0.15s; }
+  .toggle-btn.active { background: var(--accent); color: white; }
+
+  @media (max-width: 1100px) { .cards-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 800px) { .sidebar { display: none; } .main { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🧹</div>
+    <h1>CleanManager</h1>
+    <p>Gestión de limpieza</p>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('agenda')">
+      <span class="icon">📅</span> Agenda
+      <span class="nav-badge">3</span>
+    </div>
+    <div class="nav-section">Operaciones</div>
+    <div class="nav-item" onclick="showPage('clientes')">
+      <span class="icon">🏢</span> Clientes
+    </div>
+    <div class="nav-item" onclick="showPage('pisos')">
+      <span class="icon">🏠</span> Pisos
+    </div>
+    <div class="nav-item" onclick="showPage('empleados')">
+      <span class="icon">👤</span> Empleados
+    </div>
+    <div class="nav-section">Finanzas</div>
+    <div class="nav-item" onclick="showPage('facturacion')">
+      <span class="icon">📄</span> Facturación
+      <span class="nav-badge">2</span>
+    </div>
+    <div class="nav-item" onclick="showPage('pagos-empleados')">
+      <span class="icon">💸</span> Pagos empleados
+    </div>
+    <div class="nav-item" onclick="showPage('gastos')">
+      <span class="icon">🧾</span> Gastos
+    </div>
+    <div class="nav-item" onclick="showPage('financiero')">
+      <span class="icon">📈</span> Panel financiero
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" onclick="showPage('usuarios')">
+      <span class="icon">🔐</span> Usuarios
+    </div>
+    <div class="nav-item" onclick="showPage('app-movil')">
+      <span class="icon">📱</span> App empleados
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">AM</div>
+      <div class="user-info">
+        <p>Ana Martínez</p>
+        <span>Admin completo</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header header-row">
+      <div>
+        <h2>Dashboard</h2>
+        <p>Resumen general — Marzo 2025</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-gasto')">+ Gasto</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-servicio')">+ Servicio</button>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="stat-card blue">
+        <div class="label">Servicios este mes</div>
+        <div class="value">48</div>
+        <div class="sub">↑ 12% vs mes anterior</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Ingresos</div>
+        <div class="value">2.880€</div>
+        <div class="sub">Servicios realizados</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="label">Pagos empleados</div>
+        <div class="value">1.200€</div>
+        <div class="sub">Ana + Marta</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Beneficio neto</div>
+        <div class="value">1.480€</div>
+        <div class="sub">Ingresos − Gastos − Empleados</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="table-card">
+          <div class="table-header">
+            <h3>🗓 Limpiezas hoy — 18 Marzo</h3>
+            <button class="btn btn-secondary btn-sm" onclick="showPage('agenda')">Ver agenda →</button>
+          </div>
+          <table>
+            <thead><tr><th>Hora</th><th>Piso</th><th>Empleada</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td><span style="font-family:'DM Mono',monospace;color:var(--accent)">11:00</span></td><td>Salou Centro 1</td><td>Ana</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+              <tr><td><span style="font-family:'DM Mono',monospace;color:var(--accent)">14:00</span></td><td>Cambrils Puerto 2</td><td>Marta</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+              <tr><td><span style="font-family:'DM Mono',monospace;color:var(--accent)">16:30</span></td><td>Cap Salou Mar</td><td>—</td><td><span class="badge badge-inactive">Sin asignar</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="alerts-box">
+          <h3>⚠️ Alertas</h3>
+          <div class="alert-item"><div class="alert-dot"></div>2 facturas pendientes de cobro</div>
+          <div class="alert-item"><div class="alert-dot"></div>3 servicios sin asignar empleado</div>
+          <div class="alert-item"><div class="alert-dot" style="background:var(--accent3)"></div>1 gasto pendiente de registrar</div>
+          <div class="alert-item"><div class="alert-dot" style="background:var(--accent)"></div>Marta tiene 47 horas acumuladas</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="table-card">
+          <div class="table-header"><h3>📊 Ingresos por semana</h3></div>
+          <div style="padding:20px">
+            <div class="bar-chart">
+              <div class="bar-wrap">
+                <div class="bar-val">620€</div>
+                <div class="bar" style="height:60px;background:var(--accent);opacity:0.6"></div>
+                <div class="bar-label">S1</div>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar-val">740€</div>
+                <div class="bar" style="height:72px;background:var(--accent);opacity:0.7"></div>
+                <div class="bar-label">S2</div>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar-val">820€</div>
+                <div class="bar" style="height:80px;background:var(--accent)"></div>
+                <div class="bar-label">S3</div>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar-val">700€</div>
+                <div class="bar-val" style="color:var(--text3)">actual</div>
+                <div class="bar" style="height:68px;background:var(--accent2)"></div>
+                <div class="bar-label">S4</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card" style="margin-top:0">
+          <div class="table-header"><h3>💰 Resumen financiero</h3></div>
+          <table>
+            <tbody>
+              <tr><td style="color:var(--text2)">Ingresos</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--accent2)">+2.880€</td></tr>
+              <tr><td style="color:var(--text2)">Pagos empleados</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--danger)">−1.200€</td></tr>
+              <tr><td style="color:var(--text2)">Gastos operativos</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--danger)">−200€</td></tr>
+            </tbody>
+          </table>
+          <div class="finance-total">
+            <span class="label">Beneficio neto</span>
+            <span class="amount">1.480€</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="page" id="page-agenda">
+    <div class="page-header header-row">
+      <div>
+        <h2>Agenda</h2>
+        <p>Semana del 17 al 23 de Marzo 2025</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div class="toggle">
+          <button class="toggle-btn active">Lista</button>
+          <button class="toggle-btn">Semana</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-servicio')">+ Nuevo servicio</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <select class="filter-input"><option>Todos los empleados</option><option>Ana</option><option>Marta</option></select>
+      <select class="filter-input"><option>Todos los estados</option><option>Pendiente</option><option>Terminado</option></select>
+      <select class="filter-input"><option>Todos los pisos</option><option>Salou Centro 1</option><option>Cambrils Puerto 2</option></select>
+      <input type="date" class="filter-input" value="2025-03-18">
+    </div>
+
+    <div id="lista-servicios">
+    <div class="agenda-item">
+        <div class="meta">
+          <span>📍 Calle Mayor 22, Salou</span>
+          <span>👤 Ana</span>
+          <span>🏢 Apartamentos Sol</span>
+          <span>⏱ 2.5h est. — <input class="input-field" style="width:55px" placeholder="real" type="number"></span>
+          <span>💶 <input class="input-field" style="width:70px" value="60" type="number">€</span>
+          <span>✍️ Creado por Marta</span>
+        </div>
+      </div>
+      <div class="agenda-actions">
+        <span class="badge badge-pending">Pendiente</span>
+        <button class="btn btn-secondary btn-sm">Editar</button>
+        <button class="btn btn-success btn-sm">✓ Terminado</button>
+      </div>
+    </div>
+
+    <div class="agenda-item">
+      <div class="agenda-time">14:00</div>
+      <div class="agenda-info">
+        <h4>Cambrils Puerto 2 <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px">Check-out</span></h4>
+        <div class="meta">
+          <span>📍 Av. Diputación 104</span>
+          <span>👤 Marta</span>
+          <span>🏢 Costa Rentals</span>
+          <span>⏱ 3h est. — <input class="input-field" style="width:55px" placeholder="real" type="number"></span>
+          <span>💶 <input class="input-field" style="width:70px" value="72" type="number">€</span>
+        </div>
+      </div>
+      <div class="agenda-actions">
+        <span class="badge badge-pending">Pendiente</span>
+        <button class="btn btn-secondary btn-sm">Editar</button>
+        <button class="btn btn-success btn-sm">✓ Terminado</button>
+      </div>
+    </div>
+
+    <div class="agenda-item">
+      <div class="agenda-time" style="color:var(--text3)">16:30</div>
+      <div class="agenda-info">
+        <h4>Cap Salou Mar <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px">Mantenimiento</span></h4>
+        <div class="meta">
+          <span>📍 Ctra. Cap Salou 8</span>
+          <span style="color:var(--danger)">👤 Sin asignar</span>
+          <span>🏢 CostaRent</span>
+          <span>⏱ 1.5h est.</span>
+          <span>💶 <input class="input-field" style="width:70px" value="36" type="number">€</span>
+        </div>
+      </div>
+      <div class="agenda-actions">
+        <span class="badge badge-inactive">Sin asignar</span>
+        <button class="btn btn-primary btn-sm">+ Asignar</button>
+      </div>
+    </div>
+
+    <div class="agenda-item" style="opacity:0.6">
+      <div class="agenda-time" style="color:var(--accent2)">10:00</div>
+      <div class="agenda-info">
+        <h4>Salou Centro 1 <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px">Check-in • 17 Mar</span></h4>
+        <div class="meta">
+          <span>👤 Ana</span>
+          <span>⏱ 2h est. — 2h reales</span>
+          <span>💶 48€</span>
+        </div>
+      </div>
+      <div class="agenda-actions">
+        <span class="badge badge-done">Terminado</span>
+      </div>
+    </div>
+    </div><!-- end lista-servicios -->
+  </div>
+  <div class="page" id="page-clientes">
+    <div class="page-header header-row">
+      <div><h2>Clientes</h2><p>3 clientes registrados</p></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-cliente')">+ Nuevo cliente</button>
+    </div>
+    <div class="filters">
+      <input class="filter-input" placeholder="Buscar cliente..." style="width:220px">
+      <select class="filter-input"><option>Todos los estados</option><option>Activo</option><option>Inactivo</option></select>
+    </div>
+
+    <!-- Tarjetas resumen -->
+    <div class="cards-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+      <div class="stat-card blue"><div class="label">Total clientes</div><div class="value">3</div><div class="sub">Activos</div></div>
+      <div class="stat-card green"><div class="label">Pisos asignados</div><div class="value">3</div><div class="sub">Total apartamentos</div></div>
+      <div class="stat-card orange"><div class="label">Facturas pendientes</div><div class="value">2</div><div class="sub">Pendientes de cobro</div></div>
+    </div>
+
+    <!-- Tabla clientes -->
+    <div class="table-card" style="margin-bottom:24px">
+      <div class="table-header"><h3>🏢 Lista de clientes</h3></div>
+      <table id="tabla-clientes">
+        <thead><tr><th>Cliente</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>Forma de pago</th><th>Pisos</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Apartamentos Sol</strong></td>
+            <td>Carlos Romero</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">620 100 200</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="472426352b28340726373334282b6924282a">[email&#160;protected]</a></td>
+            <td>Transferencia</td>
+            <td><span class="badge badge-active" style="cursor:pointer" onclick="showPage('pisos')">2 pisos →</span></td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm" onclick="openModal('modal-cliente-detalle-1')">Ver ficha</button>
+              <button class="btn btn-secondary btn-sm">Editar</button>
+            </div></td>
+          </tr>
+          <tr>
+            <td><strong>Costa Rentals</strong></td>
+            <td>Sonia Martí</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">633 400 500</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6c1f0302050d2c0f031f180d1e0902180d001f42091f">[email&#160;protected]</a></td>
+            <td>Transferencia</td>
+            <td><span class="badge badge-active" style="cursor:pointer" onclick="showPage('pisos')">1 piso →</span></td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm">Ver ficha</button>
+              <button class="btn btn-secondary btn-sm">Editar</button>
+            </div></td>
+          </tr>
+          <tr>
+            <td><strong>CostaRent</strong></td>
+            <td>Pedro Valls</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">655 700 800</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="73031617011c33101c00071201161d075d101c1e">[email&#160;protected]</a></td>
+            <td>Efectivo</td>
+            <td><span class="badge badge-active" style="cursor:pointer" onclick="showPage('pisos')">1 piso →</span></td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm">Ver ficha</button>
+              <button class="btn btn-secondary btn-sm">Editar</button>
+            </div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Ficha detalle Apartamentos Sol -->
+    <div class="grid-2">
+      <div class="table-card">
+        <div class="table-header"><h3>📋 Ficha — Apartamentos Sol</h3><span class="badge badge-done">Activo</span></div>
+        <div style="padding:16px 20px">
+          <div class="piso-detail"><span>Empresa</span><span>Apartamentos Sol S.L.</span></div>
+          <div class="piso-detail"><span>Responsable</span><span>Carlos Romero</span></div>
+          <div class="piso-detail"><span>Teléfono</span><span style="font-family:'DM Mono',monospace">620 100 200</span></div>
+          <div class="piso-detail"><span>Email</span><span style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="224143504e4d5162435256514d4e0c414d4f">[email&#160;protected]</a></span></div>
+          <div class="piso-detail"><span>Dirección</span><span>Av. del Mar 14, Salou</span></div>
+          <div class="piso-detail"><span>Forma de pago</span><span>Transferencia bancaria</span></div>
+          <div class="piso-detail"><span>Pisos asignados</span><span style="color:var(--accent)">2 pisos</span></div>
+          <div class="piso-detail"><span>Servicios este mes</span><span>24</span></div>
+          <div class="piso-detail"><span>Facturado este mes</span><span style="color:var(--accent2);font-weight:600">1.440€</span></div>
+          <div class="piso-detail"><span>Pendiente cobro</span><span style="color:var(--danger);font-weight:600">180€</span></div>
+          <div style="margin-top:16px;display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="showPage('pisos')">Ver pisos →</button>
+            <button class="btn btn-secondary btn-sm" onclick="showPage('facturacion')">Ver facturas →</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-servicio')">+ Servicio</button>
+          </div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>🏠 Pisos de Apartamentos Sol</h3></div>
+        <table>
+          <thead><tr><th>Piso</th><th>Zona</th><th>Hab.</th><th>Último servicio</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Salou Centro 1</strong></td><td>Salou</td><td>2</td><td style="font-size:12px;color:var(--text2)">18 Mar — Pendiente</td></tr>
+            <tr><td><strong>Salou Centro 2</strong></td><td>Salou</td><td>2</td><td style="font-size:12px;color:var(--text2)">15 Mar — Terminado</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PISOS -->
+  <div class="page" id="page-pisos">
+    <div class="page-header header-row">
+      <div><h2>Pisos</h2><p>3 apartamentos registrados</p></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-piso')">+ Nuevo piso</button>
+    </div>
+    <div class="filters">
+      <input class="filter-input" placeholder="Buscar piso..." style="width:200px">
+      <select class="filter-input"><option>Todas las zonas</option><option>Salou</option><option>Cambrils</option><option>Cap Salou</option></select>
+      <select class="filter-input"><option>Todos los clientes</option><option>Apartamentos Sol</option><option>Costa Rentals</option><option>CostaRent</option></select>
+    </div>
+    <div class="grid-3" id="grid-pisos" style="margin-bottom:24px">
+    </div>
+
+  <!-- EMPLEADOS -->
+  <div class="page" id="page-empleados">
+    <div class="page-header header-row">
+      <div><h2>Empleados</h2><p>2 empleadas activas</p></div>
+      <button class="btn btn-primary btn-sm">+ Nueva empleada</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Lista de empleados</h3></div>
+      <table id="tabla-empleados">
+        <thead><tr><th>Nombre</th><th>Teléfono</th><th>Pago/hora</th><th>Horas este mes</th><th>Total mes</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">AN</div><strong>Ana</strong></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">600 111 111</td>
+            <td><input class="input-field" value="10" type="number" style="width:70px"> €/h</td>
+            <td style="font-family:'DM Mono',monospace">52h</td>
+            <td style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:600">520€</td>
+            <td><span class="badge badge-done">Activa</span></td>
+            <td><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm">Ver servicios</button><button class="btn btn-danger btn-sm">Desactivar</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#0f1117">MA</div><strong>Marta</strong></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">611 222 222</td>
+            <td><input class="input-field" value="10" type="number" style="width:70px"> €/h</td>
+            <td style="font-family:'DM Mono',monospace">47h</td>
+            <td style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:600">470€</td>
+            <td><span class="badge badge-done">Activa</span></td>
+            <td><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm">Ver servicios</button><button class="btn btn-danger btn-sm">Desactivar</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>🔑 Acceso App Empleadas</h3></div>
+      <table>
+        <thead><tr><th>Nombre</th><th>Usuario (app)</th><th>Contraseña</th><th>Último acceso</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr><td>Ana</td><td style="font-family:'DM Mono',monospace">ana_app</td><td><span style="color:var(--text3)">••••••••</span></td><td style="font-size:12px;color:var(--text2)">Hoy, 09:45</td><td><button class="btn btn-secondary btn-sm">Cambiar contraseña</button></td></tr>
+          <tr><td>Marta</td><td style="font-family:'DM Mono',monospace">marta_app</td><td><span style="color:var(--text3)">••••••••</span></td><td style="font-size:12px;color:var(--text2)">Ayer, 17:20</td><td><button class="btn btn-secondary btn-sm">Cambiar contraseña</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FACTURACIÓN -->
+  <div class="page" id="page-facturacion">
+    <div class="page-header header-row">
+      <div><h2>Facturación</h2><p>Cierre de servicios por cliente</p></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-factura')">+ Nueva factura</button>
+    </div>
+    <div class="filters">
+      <select class="filter-input"><option>Todos los clientes</option><option>Apartamentos Sol</option><option>Costa Rentals</option><option>CostaRent</option></select>
+      <select class="filter-input"><option>Todos los estados</option><option>Pendiente</option><option>Pagado</option></select>
+      <input type="month" class="filter-input" value="2025-03">
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3>🏢 Apartamentos Sol — Servicios pendientes</h3>
+        <button class="btn btn-primary btn-sm">📄 Crear factura → PDF</button>
+      </div>
+      <table>
+        <thead><tr><th>Fecha</th><th>Piso</th><th>Tipo</th><th>Horas</th><th>Precio</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>12 Mar</td><td>Salou Centro 1</td><td>Check-out</td><td>2.5h</td><td><input class="input-field" value="60" type="number">€</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+          <tr><td>15 Mar</td><td>Cambrils Puerto 2</td><td>Check-out</td><td>3h</td><td><input class="input-field" value="72" type="number">€</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+          <tr><td>18 Mar</td><td>Salou Centro 1</td><td>Check-out</td><td>2h</td><td><input class="input-field" value="48" type="number">€</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+        </tbody>
+      </table>
+      <div class="finance-total">
+        <span class="label">Total a facturar</span>
+        <span class="amount">180€</span>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header"><h3>📋 Historial de facturas</h3></div>
+      <table>
+        <thead><tr><th>Nº Factura</th><th>Cliente</th><th>Fecha</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:'DM Mono',monospace">#2025-003</td><td>Apartamentos Sol</td><td>01 Mar</td><td style="font-family:'DM Mono',monospace">240€</td><td><span class="badge badge-paid">Pagado</span></td><td><button class="btn btn-secondary btn-sm">📄 PDF</button></td></tr>
+          <tr><td style="font-family:'DM Mono',monospace">#2025-002</td><td>Costa Rentals</td><td>28 Feb</td><td style="font-family:'DM Mono',monospace">312€</td><td><span class="badge badge-partial">Pendiente</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">✓ Registrar pago</button><button class="btn btn-secondary btn-sm">📄 PDF</button></div></td></tr>
+          <tr><td style="font-family:'DM Mono',monospace">#2025-001</td><td>CostaRent</td><td>20 Feb</td><td style="font-family:'DM Mono',monospace">144€</td><td><span class="badge badge-paid">Pagado</span></td><td><button class="btn btn-secondary btn-sm">📄 PDF</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAGOS EMPLEADOS -->
+  <div class="page" id="page-pagos-empleados">
+    <div class="page-header header-row">
+      <div><h2>Pagos Empleados</h2><p>Cálculo automático desde servicios terminados</p></div>
+      <select class="filter-input">
+        <option>Marzo 2025</option><option>Febrero 2025</option><option>Enero 2025</option>
+      </select>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="stat-card orange">
+        <div class="label">Total a pagar</div>
+        <div class="value">990€</div>
+        <div class="sub">Ana (520€) + Marta (470€)</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="label">Horas totales</div>
+        <div class="value">99h</div>
+        <div class="sub">Horas reales registradas</div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>💸 Pagos — Marzo 2025</h3></div>
+      <table>
+        <thead><tr><th>Empleada</th><th>Servicios</th><th>Horas registradas</th><th>Pago/hora</th><th>Total calculado</th><th>Ajuste manual</th><th>Total final</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Ana</strong></td>
+            <td>24 servicios</td>
+            <td style="font-family:'DM Mono',monospace">52h</td>
+            <td style="font-family:'DM Mono',monospace">10€/h</td>
+            <td style="font-family:'DM Mono',monospace">520€</td>
+            <td><input class="input-field" value="0" type="number" placeholder="±€"></td>
+            <td style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:600">520€</td>
+            <td><span class="badge badge-pending">Pendiente</span></td>
+          </tr>
+          <tr>
+            <td><strong>Marta</strong></td>
+            <td>22 servicios</td>
+            <td style="font-family:'DM Mono',monospace">47h</td>
+            <td style="font-family:'DM Mono',monospace">10€/h</td>
+            <td style="font-family:'DM Mono',monospace">470€</td>
+            <td><input class="input-field" value="0" type="number" placeholder="±€"></td>
+            <td style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:600">470€</td>
+            <td><span class="badge badge-pending">Pendiente</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="finance-total">
+        <span class="label">Total a pagar este mes</span>
+        <span class="amount">990€</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>📋 Historial de pagos</h3></div>
+      <table>
+        <thead><tr><th>Mes</th><th>Empleada</th><th>Horas</th><th>Importe</th><th>Fecha pago</th><th>Método</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>Febrero 2025</td><td>Ana</td><td>48h</td><td style="font-family:'DM Mono',monospace">480€</td><td>01 Mar</td><td>Transferencia</td><td><span class="badge badge-paid">Pagado</span></td></tr>
+          <tr><td>Febrero 2025</td><td>Marta</td><td>45h</td><td style="font-family:'DM Mono',monospace">450€</td><td>01 Mar</td><td>Transferencia</td><td><span class="badge badge-paid">Pagado</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div class="page" id="page-gastos">
+    <div class="page-header header-row">
+      <div><h2>Gastos</h2><p>Registro de gastos operativos</p></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-gasto')">+ Registrar gasto</button>
+    </div>
+    <div class="filters">
+      <select class="filter-input"><option>Todas las categorías</option><option>Insumos</option><option>Movilidad</option><option>Marketing</option><option>Equipamiento</option></select>
+      <select class="filter-input"><option>Todos los responsables</option><option>Ana</option><option>Marta</option><option>Laura</option></select>
+      <input type="month" class="filter-input" value="2025-03">
+    </div>
+    <div class="cards-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card red"><div class="label">Total gastos marzo</div><div class="value">200€</div><div class="sub">3 registros</div></div>
+      <div class="stat-card orange"><div class="label">Insumos</div><div class="value">45€</div><div class="sub">Productos limpieza</div></div>
+      <div class="stat-card blue"><div class="label">Movilidad + Marketing</div><div class="value">80€</div><div class="sub">Gasolina + FB Ads</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>🧾 Gastos — Marzo 2025</h3></div>
+      <table id="tabla-gastos">
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Importe</th><th>Responsable</th><th>Observaciones</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>12/03</td>
+            <td><span class="badge badge-active">Insumos</span></td>
+            <td>Productos limpieza</td>
+            <td style="font-family:'DM Mono',monospace">45€</td>
+            <td>Ana</td>
+            <td style="color:var(--text2);font-size:12px">Supermercado local</td>
+            <td><button class="btn btn-secondary btn-sm">Editar</button></td>
+          </tr>
+          <tr>
+            <td>13/03</td>
+            <td><span class="badge badge-pending">Movilidad</span></td>
+            <td>Gasolina</td>
+            <td style="font-family:'DM Mono',monospace">30€</td>
+            <td>Marta</td>
+            <td style="color:var(--text2);font-size:12px">Coche empresa</td>
+            <td><button class="btn btn-secondary btn-sm">Editar</button></td>
+          </tr>
+          <tr>
+            <td>14/03</td>
+            <td><span class="badge badge-done">Marketing</span></td>
+            <td>Publicidad Facebook</td>
+            <td style="font-family:'DM Mono',monospace">50€</td>
+            <td>Laura</td>
+            <td style="color:var(--text2);font-size:12px">Campaña marzo</td>
+            <td><button class="btn btn-secondary btn-sm">Editar</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="finance-total">
+        <span class="label">Total gastos</span>
+        <span class="amount" style="color:var(--danger)">200€</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL FINANCIERO -->
+  <div class="page" id="page-financiero">
+    <div class="page-header header-row">
+      <div><h2>Panel Financiero</h2><p>Resumen económico completo</p></div>
+      <select class="filter-input"><option>Marzo 2025</option><option>Febrero 2025</option><option>Enero 2025</option></select>
+    </div>
+    <div class="profit-card">
+      <div>
+        <div class="label">Beneficio neto — Marzo 2025</div>
+        <div class="amount">2.200€</div>
+        <div class="month">↑ 18% vs Febrero (1.870€)</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Margen neto</div>
+        <div style="font-size:28px;font-weight:700;color:var(--accent)">52%</div>
+      </div>
+    </div>
+    <div class="cards-grid">
+      <div class="stat-card green"><div class="label">Ingresos</div><div class="value">4.200€</div><div class="sub">+servicios cobrados</div></div>
+      <div class="stat-card orange"><div class="label">Pagos empleados</div><div class="value">1.800€</div><div class="sub">Ana + Marta</div></div>
+      <div class="stat-card red"><div class="label">Gastos operativos</div><div class="value">200€</div><div class="sub">Insumos + movilidad</div></div>
+      <div class="stat-card blue"><div class="label">Servicios realizados</div><div class="value">70</div><div class="sub">Este mes</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>📊 Resumen mensual</h3></div>
+      <table>
+        <thead><tr><th>Mes</th><th>Servicios</th><th>Ingresos</th><th>Pagos empleados</th><th>Gastos</th><th>Beneficio neto</th><th>Margen</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Marzo 2025</strong></td>
+            <td>70</td>
+            <td style="color:var(--accent2);font-family:'DM Mono',monospace">4.200€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">1.800€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">200€</td>
+            <td style="color:var(--accent2);font-weight:700;font-family:'DM Mono',monospace">2.200€</td>
+            <td><span class="badge badge-done">52%</span></td>
+          </tr>
+          <tr>
+            <td>Febrero 2025</td>
+            <td>58</td>
+            <td style="color:var(--accent2);font-family:'DM Mono',monospace">3.480€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">1.530€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">80€</td>
+            <td style="font-weight:700;font-family:'DM Mono',monospace">1.870€</td>
+            <td><span class="badge badge-active">54%</span></td>
+          </tr>
+          <tr>
+            <td>Enero 2025</td>
+            <td>42</td>
+            <td style="color:var(--accent2);font-family:'DM Mono',monospace">2.520€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">1.100€</td>
+            <td style="color:var(--danger);font-family:'DM Mono',monospace">120€</td>
+            <td style="font-weight:700;font-family:'DM Mono',monospace">1.300€</td>
+            <td><span class="badge badge-pending">52%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- USUARIOS -->
+  <div class="page" id="page-usuarios">
+    <div class="page-header header-row">
+      <div><h2>Usuarios / Administradores</h2><p>Control de acceso y permisos</p></div>
+      <button class="btn btn-primary btn-sm">+ Nuevo usuario</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>🔐 Usuarios del sistema</h3></div>
+      <table>
+        <thead><tr><th>Nombre</th><th>Email / Usuario</th><th>Rol</th><th>Último acceso</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">AN</div><strong>Ana Martínez</strong></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fe9f909fbe9b938e8c9b8d9fd09d9193">[email&#160;protected]</a></td>
+            <td><span class="badge badge-admin">Admin completo</span></td>
+            <td style="font-size:12px;color:var(--text2)">Hoy, 10:32</td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm">Editar</button><button class="btn btn-danger btn-sm">Desactivar</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#0f1117">MA</div><strong>Marta García</strong></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="aac7cbd8decbeacfc7dad8cfd9cb84c9c5c7">[email&#160;protected]</a></td>
+            <td><span class="badge badge-admin">Admin completo</span></td>
+            <td style="font-size:12px;color:var(--text2)">Ayer, 18:45</td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm">Editar</button><button class="btn btn-danger btn-sm">Desactivar</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#0f1117">LA</div><strong>Laura Sánchez</strong></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7f131e0a0d1e3f1a120f0d1a0c1e511c1012">[email&#160;protected]</a></td>
+            <td><span class="badge badge-partial-role">Gestor parcial</span></td>
+            <td style="font-size:12px;color:var(--text2)">16 Mar, 09:10</td>
+            <td><span class="badge badge-done">Activo</span></td>
+            <td><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm">Editar</button><button class="btn btn-danger btn-sm">Desactivar</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>📋 Permisos por rol</h3></div>
+      <table>
+        <thead><tr><th>Módulo</th><th>Admin completo</th><th>Gestor parcial</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Agenda / Servicios</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Pisos</td><td>✅</td><td>Solo lectura</td></tr>
+          <tr><td>Empleados</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Facturación</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Pagos empleados</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Gastos</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Panel financiero</td><td>✅</td><td>Solo lectura</td></tr>
+          <tr><td>Usuarios</td><td>✅</td><td>❌</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- APP MOVIL -->
+  <div class="page" id="page-app-movil">
+    <div class="page-header">
+      <h2>App Empleados (móvil)</h2>
+      <p>Vista de la app Android que ven las empleadas</p>
+    </div>
+    <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:16px">Ana — Vista empleada</p>
+        <div class="mobile-preview">
+          <div class="mobile-header">
+            👤 Ana &nbsp;|&nbsp; <span style="color:var(--accent2)">● En línea</span>
+          </div>
+          <div style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">MIS SERVICIOS — HOY</div>
+          <div class="mobile-service">
+            <div style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px;margin-bottom:4px">11:00</div>
+            <h4>Salou Centro 1</h4>
+            <p>Calle Mayor 22, Salou</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-bottom:10px">
+              <span>Check-out</span><span>•</span><span>2.5h est.</span>
+            </div>
+            <button class="btn btn-primary btn-sm" style="width:100%">▶ Iniciar limpieza</button>
+          </div>
+          <div class="mobile-service">
+            <div style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px;margin-bottom:4px">14:00</div>
+            <h4>Cap Salou Mar</h4>
+            <p>Ctra. Cap Salou 8</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-bottom:10px">
+              <span>Mantenimiento</span><span>•</span><span>1.5h est.</span>
+            </div>
+            <button class="btn btn-primary btn-sm" style="width:100%">▶ Iniciar limpieza</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:16px">Salou Centro 1 — En progreso</p>
+        <div class="mobile-preview">
+          <div class="mobile-header">
+            🏠 Salou Centro 1
+          </div>
+          <div style="background:rgba(56,217,169,0.1);border:1px solid rgba(56,217,169,0.3);border-radius:var(--radius);padding:14px;margin-bottom:16px;text-align:center">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">EN PROGRESO</div>
+            <div style="font-size:30px;font-family:'DM Mono',monospace;color:var(--accent2);font-weight:700">01:24</div>
+            <div style="font-size:11px;color:var(--text3)">Iniciado a las 11:02</div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+            <div style="padding:6px 0;border-bottom:1px solid var(--border)">📍 Calle Mayor 22</div>
+            <div style="padding:6px 0;border-bottom:1px solid var(--border)">🛏 2 hab • 🚿 1 baño • 65m²</div>
+            <div style="padding:6px 0;border-bottom:1px solid var(--border)">🔑 Acceso: Caja</div>
+            <div style="padding:6px 0">🌀 Lavadora: Sí &nbsp;|&nbsp; 🛏 Sábanas: Sí</div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Horas reales</label>
+            <input class="filter-input" style="width:100%" placeholder="Ej: 2.5" type="number">
+          </div>
+          <button class="btn btn-success btn-sm" style="width:100%;justify-content:center">✓ Finalizar limpieza</button>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <div class="table-card">
+          <div class="table-header"><h3>Funciones de la app</h3></div>
+          <table>
+            <tbody>
+              <tr><td>📅</td><td>Ver servicios del día asignados</td></tr>
+              <tr><td>▶️</td><td>Marcar inicio de limpieza</td></tr>
+              <tr><td>✅</td><td>Marcar fin con horas reales</td></tr>
+              <tr><td>🏠</td><td>Ver ficha del piso (acceso, notas)</td></tr>
+              <tr><td>🔔</td><td>Recibir notificaciones de nuevos servicios</td></tr>
+              <tr><td>🔒</td><td>Solo ve sus propios servicios</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-servicio">
+  <div class="modal">
+    <h3>➕ Nuevo servicio</h3>
+    <div class="grid-2">
+      <div class="form-row"><label>Fecha</label><input type="date" value="2025-03-18"></div>
+      <div class="form-row"><label>Hora</label><input type="time" value="11:00"></div>
+    </div>
+    <div class="form-row"><label>Piso</label><select><option>Salou Centro 1</option><option>Cambrils Puerto 2</option><option>Cap Salou Mar</option></select></div>
+    <div class="form-row"><label>Empleada</label><select><option>Ana</option><option>Marta</option><option>Sin asignar</option></select></div>
+    <div class="grid-2">
+      <div class="form-row"><label>Tipo de servicio</label><select><option>Check-out</option><option>Check-in</option><option>Mantenimiento</option></select></div>
+      <div class="form-row"><label>Horas estimadas</label><input type="number" placeholder="2.5"></div>
+    </div>
+    <div class="form-row"><label>Precio cliente (€)</label><input type="number" placeholder="60"></div>
+    <div class="form-row"><label>Observaciones</label><textarea rows="2" placeholder="Notas del servicio..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-servicio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-servicio')">Crear servicio</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-gasto">
+  <div class="modal">
+    <h3>🧾 Registrar gasto</h3>
+    <div class="grid-2">
+      <div class="form-row"><label>Fecha</label><input type="date" value="2025-03-18"></div>
+      <div class="form-row"><label>Importe (€)</label><input type="number" placeholder="45"></div>
+    </div>
+    <div class="form-row"><label>Categoría</label><select><option>Insumos</option><option>Movilidad</option><option>Marketing</option><option>Equipamiento</option><option>Otros</option></select></div>
+    <div class="form-row"><label>Descripción</label><input type="text" placeholder="Productos limpieza..."></div>
+    <div class="form-row"><label>Responsable</label><select><option>Ana</option><option>Marta</option><option>Laura</option></select></div>
+    <div class="form-row"><label>Observaciones</label><textarea rows="2" placeholder="Notas..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-gasto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-gasto')">Guardar gasto</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <h3>🏢 Nuevo cliente</h3>
+    <div class="form-row"><label>Nombre empresa / cliente</label><input id="cli-nombre" type="text" placeholder="Ej: Apartamentos Sol S.L."></div>
+    <div class="grid-2">
+      <div class="form-row"><label>Responsable / contacto</label><input id="cli-contacto" type="text" placeholder="Nombre del responsable"></div>
+      <div class="form-row"><label>Teléfono</label><input id="cli-telefono" type="tel" placeholder="600 000 000"></div>
+    </div>
+    <div class="form-row"><label>Email</label><input id="cli-email" type="email" placeholder="email@empresa.com"></div>
+    <div class="form-row"><label>Dirección</label><input id="cli-direccion" type="text" placeholder="Calle, número, ciudad"></div>
+    <div class="form-row"><label>Forma de pago</label>
+      <select id="cli-pago"><option>Transferencia bancaria</option><option>Efectivo</option><option>Cheque</option><option>Domiciliación</option></select>
+    </div>
+    <div class="form-row"><label>Observaciones</label><textarea id="cli-obs" rows="2" placeholder="Notas sobre el cliente..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCliente()">Guardar cliente</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-piso">
+  <div class="modal">
+    <h3>🏠 Nuevo piso</h3>
+    <div class="grid-2">
+      <div class="form-row"><label>Nombre del piso</label><input id="piso-nombre" type="text" placeholder="Ej: Salou Centro 3"></div>
+      <div class="form-row"><label>Zona</label><input id="piso-zona" type="text" placeholder="Ej: Salou"></div>
+    </div>
+    <div class="form-row"><label>Cliente asignado</label>
+      <select id="piso-cliente" class="select-clientes"></select>
+    </div>
+    <div class="form-row"><label>Dirección</label><input id="piso-dir" type="text" placeholder="Calle y número"></div>
+    <div class="grid-3">
+      <div class="form-row"><label>Habitaciones</label><input id="piso-hab" type="number" placeholder="2"></div>
+      <div class="form-row"><label>Baños</label><input id="piso-ban" type="number" placeholder="1"></div>
+      <div class="form-row"><label>Metros²</label><input id="piso-m2" type="number" placeholder="65"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-row"><label>Tiempo estimado (h)</label><input id="piso-tiempo" type="number" placeholder="2.5" step="0.5"></div>
+      <div class="form-row"><label>Personas necesarias</label><input id="piso-personas" type="number" placeholder="1"></div>
+    </div>
+    <div class="form-row"><label>Tipo de acceso</label>
+      <select id="piso-acceso"><option>Caja</option><option>Llave</option><option>Código</option><option>Otro</option></select>
+    </div>
+    <div class="grid-2">
+      <div class="form-row"><label>Lavadora</label><select id="piso-lavadora"><option>Sí</option><option>No</option></select></div>
+      <div class="form-row"><label>Cambio sábanas</label><select id="piso-sabanas"><option>Sí</option><option>No</option></select></div>
+    </div>
+    <div class="form-row"><label>Observaciones</label><textarea id="piso-obsv" rows="2" placeholder="Notas del piso..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-piso')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPiso()">Guardar piso</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-factura">
+  <div class="modal">
+    <h3>📄 Nueva factura</h3>
+    <div class="form-row"><label>Cliente</label><select><option>Apartamentos Sol</option><option>Costa Rentals</option><option>CostaRent</option></select></div>
+    <div class="grid-2">
+      <div class="form-row"><label>Fecha emisión</label><input type="date" value="2025-03-18"></div>
+      <div class="form-row"><label>Vencimiento</label><input type="date" value="2025-04-18"></div>
+    </div>
+    <div class="form-row"><label>Observaciones</label><textarea rows="2" placeholder="Notas de la factura..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-factura')">Cancelar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-factura')">Crear y generar PDF</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-gasto">
+  <div class="modal">
+    <h3>🧾 Registrar gasto</h3>
+    <div class="grid-2">
+      <div class="form-row"><label>Fecha</label><input type="date" id="gasto-fecha"></div>
+      <div class="form-row"><label>Importe (€)</label><input type="number" id="gasto-importe" placeholder="45"></div>
+    </div>
+    <div class="form-row"><label>Categoría</label>
+      <select id="gasto-categoria"><option>Insumos</option><option>Movilidad</option><option>Marketing</option><option>Equipamiento</option><option>Otros</option></select>
+    </div>
+    <div class="form-row"><label>Descripción</label><input type="text" id="gasto-descripcion" placeholder="Productos limpieza..."></div>
+    <div class="form-row"><label>Responsable</label>
+      <select id="gasto-responsable"><option>Ana</option><option>Marta</option><option>Laura</option></select>
+    </div>
+    <div class="form-row"><label>Observaciones</label><textarea id="gasto-obs" rows="2" placeholder="Notas..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-gasto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarGasto()">Guardar gasto</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast" style="display:none;position:fixed;bottom:28px;right:28px;background:var(--accent2);color:#0f1117;padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4)"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ─── SUPABASE CONFIG ───────────────────────────────────────
+const SUPABASE_URL = 'https://fmsjdookliknwxmzczlg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_XqEChd6VP8krunSuSEu38g_8JmMOdGw';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── TOAST ────────────────────────────────────────────────
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.background = ok ? 'var(--accent2)' : 'var(--danger)';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+// ─── NAVEGACIÓN ───────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  window.scrollTo(0,0);
+  // Cargar datos al cambiar de página
+  if (id === 'clientes') cargarClientes();
+  if (id === 'pisos') cargarPisos();
+  if (id === 'empleados') cargarEmpleados();
+  if (id === 'gastos') cargarGastos();
+  if (id === 'agenda') cargarServicios();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', function(e) { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ─── CLIENTES ─────────────────────────────────────────────
+async function cargarClientes() {
+  const { data, error } = await db.from('clientes').select('*').order('nombre');
+  if (error) { console.error(error); return; }
+  if (!data || data.length === 0) return;
+  const tbody = document.querySelector('#tabla-clientes tbody');
+  if (!tbody) return;
+  tbody.innerHTML = data.map(c => `
+    <tr>
+      <td><strong>${c.nombre}</strong></td>
+      <td>${c.contacto || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${c.telefono || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${c.email || '—'}</td>
+      <td>${c.forma_pago || '—'}</td>
+      <td><span class="badge badge-active">Ver pisos</span></td>
+      <td><span class="badge badge-done">Activo</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="eliminarCliente(${c.id})">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+async function guardarCliente() {
+  const nombre = document.getElementById('cli-nombre').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio', false); return; }
+  const { error } = await db.from('clientes').insert({
+    nombre,
+    contacto: document.getElementById('cli-contacto').value,
+    telefono: document.getElementById('cli-telefono').value,
+    email: document.getElementById('cli-email').value,
+    direccion: document.getElementById('cli-direccion').value,
+    forma_pago: document.getElementById('cli-pago').value,
+    observaciones: document.getElementById('cli-obs').value,
+  });
+  if (error) { toast('Error al guardar: ' + error.message, false); return; }
+  toast('✅ Cliente guardado correctamente');
+  closeModal('modal-cliente');
+  cargarClientes();
+}
+
+async function eliminarCliente(id) {
+  if (!confirm('¿Eliminar este cliente?')) return;
+  await db.from('clientes').delete().eq('id', id);
+  toast('Cliente eliminado');
+  cargarClientes();
+}
+
+// ─── PISOS ────────────────────────────────────────────────
+async function cargarPisos() {
+  const { data, error } = await db.from('pisos').select('*, clientes(nombre)').order('nombre');
+  if (error) { console.error(error); return; }
+  if (!data || data.length === 0) return;
+  const contenedor = document.getElementById('grid-pisos');
+  if (!contenedor) return;
+  contenedor.innerHTML = data.map(p => `
+    <div class="piso-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <h4>${p.nombre}</h4>
+        <span class="badge badge-done" style="font-size:10px">Activo</span>
+      </div>
+      <div class="zona">📍 ${p.zona || '—'}</div>
+      <div class="piso-detail"><span>Cliente</span><span style="color:var(--accent);font-weight:600">🏢 ${p.clientes ? p.clientes.nombre : '—'}</span></div>
+      <div class="piso-detail"><span>Dirección</span><span>${p.direccion || '—'}</span></div>
+      <div class="piso-detail"><span>Habitaciones</span><span>${p.habitaciones || '—'}</span></div>
+      <div class="piso-detail"><span>Baños</span><span>${p.banos || '—'}</span></div>
+      <div class="piso-detail"><span>Metros²</span><span>${p.metros || '—'} m²</span></div>
+      <div class="piso-detail"><span>Tiempo estimado</span><span>${p.tiempo_estimado || '—'}h</span></div>
+      <div class="piso-detail"><span>Acceso</span><span>${p.tipo_acceso || '—'}</span></div>
+      <div class="piso-detail"><span>Lavadora</span><span>${p.lavadora ? '✅' : '❌'}</span></div>
+      <div class="piso-detail"><span>Cambio sábanas</span><span>${p.cambio_sabanas ? '✅' : '❌'}</span></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-danger btn-sm" style="flex:1" onclick="eliminarPiso(${p.id})">Eliminar</button>
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="openModal('modal-servicio')">+ Servicio</button>
+      </div>
+    </div>`).join('');
+}
+
+async function guardarPiso() {
+  const nombre = document.getElementById('piso-nombre').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio', false); return; }
+  const clienteId = document.getElementById('piso-cliente').value;
+  const { error } = await db.from('pisos').insert({
+    nombre,
+    zona: document.getElementById('piso-zona').value,
+    cliente_id: clienteId || null,
+    direccion: document.getElementById('piso-dir').value,
+    habitaciones: document.getElementById('piso-hab').value || null,
+    banos: document.getElementById('piso-ban').value || null,
+    metros: document.getElementById('piso-m2').value || null,
+    tiempo_estimado: document.getElementById('piso-tiempo').value || null,
+    personas: document.getElementById('piso-personas').value || null,
+    tipo_acceso: document.getElementById('piso-acceso').value,
+    lavadora: document.getElementById('piso-lavadora').value === 'Sí',
+    cambio_sabanas: document.getElementById('piso-sabanas').value === 'Sí',
+    observaciones: document.getElementById('piso-obsv').value,
+  });
+  if (error) { toast('Error al guardar: ' + error.message, false); return; }
+  toast('✅ Piso guardado correctamente');
+  closeModal('modal-piso');
+  cargarPisos();
+  cargarSelectPisos();
+}
+
+async function eliminarPiso(id) {
+  if (!confirm('¿Eliminar este piso?')) return;
+  await db.from('pisos').delete().eq('id', id);
+  toast('Piso eliminado');
+  cargarPisos();
+}
+
+// ─── EMPLEADOS ────────────────────────────────────────────
+async function cargarEmpleados() {
+  const { data, error } = await db.from('empleados').select('*').order('nombre');
+  if (error) { console.error(error); return; }
+  if (!data || data.length === 0) return;
+  const tbody = document.querySelector('#tabla-empleados tbody');
+  if (!tbody) return;
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td><strong>${e.nombre}</strong></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${e.telefono || '—'}</td>
+      <td><input class="input-field" value="${e.pago_hora || 10}" type="number" style="width:70px"> €/h</td>
+      <td style="font-family:'DM Mono',monospace">—</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:600">—</td>
+      <td><span class="badge badge-done">${e.activo ? 'Activa' : 'Inactiva'}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${e.id})">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+async function eliminarEmpleado(id) {
+  if (!confirm('¿Eliminar esta empleada?')) return;
+  await db.from('empleados').delete().eq('id', id);
+  toast('Empleada eliminada');
+  cargarEmpleados();
+}
+
+// ─── GASTOS ───────────────────────────────────────────────
+async function cargarGastos() {
+  const { data, error } = await db.from('gastos').select('*').order('fecha', { ascending: false });
+  if (error) { console.error(error); return; }
+  if (!data || data.length === 0) return;
+  const tbody = document.querySelector('#tabla-gastos tbody');
+  if (!tbody) return;
+  tbody.innerHTML = data.map(g => `
+    <tr>
+      <td>${g.fecha}</td>
+      <td><span class="badge badge-active">${g.categoria}</span></td>
+      <td>${g.descripcion}</td>
+      <td style="font-family:'DM Mono',monospace">${g.importe}€</td>
+      <td>${g.responsable}</td>
+      <td style="color:var(--text2);font-size:12px">${g.observaciones || '—'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="eliminarGasto(${g.id})">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+async function guardarGasto() {
+  const importe = document.getElementById('gasto-importe').value;
+  const desc = document.getElementById('gasto-descripcion').value.trim();
+  if (!importe || !desc) { toast('Completá importe y descripción', false); return; }
+  const { error } = await db.from('gastos').insert({
+    fecha: document.getElementById('gasto-fecha').value || new Date().toISOString().split('T')[0],
+    importe: parseFloat(importe),
+    categoria: document.getElementById('gasto-categoria').value,
+    descripcion: desc,
+    responsable: document.getElementById('gasto-responsable').value,
+    observaciones: document.getElementById('gasto-obs').value,
+  });
+  if (error) { toast('Error: ' + error.message, false); return; }
+  toast('✅ Gasto guardado');
+  closeModal('modal-gasto');
+  cargarGastos();
+}
+
+async function eliminarGasto(id) {
+  if (!confirm('¿Eliminar este gasto?')) return;
+  await db.from('gastos').delete().eq('id', id);
+  toast('Gasto eliminado');
+  cargarGastos();
+}
+
+// ─── SERVICIOS ────────────────────────────────────────────
+async function cargarServicios() {
+  const { data, error } = await db.from('servicios').select('*, pisos(nombre), empleados(nombre)').order('fecha', { ascending: false }).order('hora');
+  if (error) { console.error(error); return; }
+  if (!data || data.length === 0) return;
+  const contenedor = document.getElementById('lista-servicios');
+  if (!contenedor) return;
+  contenedor.innerHTML = data.map(s => `
+    <div class="agenda-item">
+      <div class="agenda-time">${s.hora ? s.hora.slice(0,5) : '—'}</div>
+      <div class="agenda-info">
+        <h4>${s.pisos ? s.pisos.nombre : '—'} <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px">${s.tipo_servicio || ''}</span></h4>
+        <div class="meta">
+          <span>👤 ${s.empleados ? s.empleados.nombre : 'Sin asignar'}</span>
+          <span>📅 ${s.fecha}</span>
+          <span>⏱ ${s.horas_estimadas || '—'}h est.</span>
+          <span>💶 ${s.precio_cliente || '—'}€</span>
+        </div>
+      </div>
+      <div class="agenda-actions">
+        <span class="badge ${s.estado === 'Terminado' ? 'badge-done' : 'badge-pending'}">${s.estado || 'Pendiente'}</span>
+        <button class="btn btn-danger btn-sm" onclick="eliminarServicio(${s.id})">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function eliminarServicio(id) {
+  if (!confirm('¿Eliminar este servicio?')) return;
+  await db.from('servicios').delete().eq('id', id);
+  toast('Servicio eliminado');
+  cargarServicios();
+}
+
+// ─── SELECTS DINÁMICOS ────────────────────────────────────
+async function cargarSelectClientes() {
+  const { data } = await db.from('clientes').select('id, nombre').order('nombre');
+  if (!data) return;
+  const selects = document.querySelectorAll('.select-clientes');
+  selects.forEach(sel => {
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' +
+      data.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    sel.value = current;
+  });
+}
+
+async function cargarSelectPisos() {
+  const { data } = await db.from('pisos').select('id, nombre').order('nombre');
+  if (!data) return;
+  const selects = document.querySelectorAll('.select-pisos');
+  selects.forEach(sel => {
+    sel.innerHTML = '<option value="">— Seleccionar piso —</option>' +
+      data.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  });
+}
+
+async function cargarSelectEmpleados() {
+  const { data } = await db.from('empleados').select('id, nombre').order('nombre');
+  if (!data) return;
+  const selects = document.querySelectorAll('.select-empleados');
+  selects.forEach(sel => {
+    sel.innerHTML = '<option value="">Sin asignar</option>' +
+      data.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarSelectClientes();
+  await cargarSelectPisos();
+  await cargarSelectEmpleados();
+  cargarClientes();
+});
+</script>
+</body>
+</html>
